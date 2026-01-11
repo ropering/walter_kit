@@ -1,119 +1,61 @@
-#cloud-config
 autoinstall:
-  version: 1
-  locale: ko_KR.UTF-8
-  keyboard:
-    layout: kr
+  apt:
+    mirror-selection:
+      primary:
+        - uri: "https://ftp.kaist.ac.kr/ubuntu/"
+          arches: [amd64]
+        - uri: "https://mirror.kakao.com/ubuntu/"
+          arches: [amd64]
+        - uri: "http://archive.ubuntu.com/ubuntu"
+          arches: [amd64]
+    fallback: abort
 
-  network:
-    version: 2
-    wifis:
-      wlp8s0:
-        dhcp4: true
-        access-points:
-          "TakeRest5G":
-            password: "takearest"
-        # addresses:
-        #   - 192.168.0.50/24
-        # routes:
-        #   - to: default
-        #     via: 192.168.0.1
-        # nameservers:
-        #   addresses: [8.8.8.8, 8.8.4.4]
+  storage:
+    layout:
+      name: direct
+      match:
+        ssd: true
+    swap:
+      size: 0
 
   identity:
     hostname: main-1
     username: walter
     password: "$6$m9rLgoAUUIzlB6vG$ZoPRCs0EbxtDTC6gBzRTxSMOf3p6MC6cXAw9V8A.csjFBii/yucC3rVE5P7tPgwVLHwHANgmr9EehbIcvZBvU0"
-
+  
   ssh:
     install-server: true
     allow-pw: true
+  
+  # install codecs, which currently means installing the
+  # ubuntu-restricted-addons package
+  codecs:
+    install: true
+  
+  # install drivers as suggested by `ubuntu-drivers`.
+  drivers:
+    install: true
+  
+  oem:
+    install: auto
+  
+  snaps:
+  
+  autoinstall:
+    packages:
+  
+  kernel-crash-dumps:
+    enabled: true
+  
+  timezone: "Asia/Seoul"
+  locale: ko_KR.UTF-8
+  keyboard:
+    layout: kr
 
-  # packages:
-  #   - git
-  #   - net-tools
-  #   - ca-certificates
-  #   - curl
-  #   - gnupg
-  #   - gpg
-  #   - apt-transport-https
-  #   - wpasupplicant
-  #   - bash-completion
-  #   - software-properties-common
-  #   - containerd
-  #   # kubeadm에서 자주 필요한 기본 유틸(환경 안정화용)
-  #   - conntrack
-  #   - socat
-  #   - ebtables
-  #   - ipset
+  # Updates from both the security and updates pockets are installed.
+  updates: all
 
-  storage:
-    layout:
-      name: direct
-    swap:
-      size: 0
-
-  # late-commands:
-    # # --- apt 컴포넌트 보강 ---
-    # - curtin in-target -- bash -lc "set -euxo pipefail; DEBIAN_FRONTEND=noninteractive add-apt-repository -y universe || true"
-    # - curtin in-target -- bash -lc "set -euxo pipefail; DEBIAN_FRONTEND=noninteractive add-apt-repository -y multiverse || true"
-    # - curtin in-target -- bash -lc "set -euxo pipefail; apt-get -o Acquire::Retries=5 update"
-
-    # # --- 커널 모듈/시스템 파라미터 ---
-    # - curtin in-target -- bash -lc "set -euxo pipefail; printf 'overlay\nbr_netfilter\n' > /etc/modules-load.d/k8s.conf"
-    # - curtin in-target -- bash -lc "set -euxo pipefail; printf 'net.bridge.bridge-nf-call-iptables = 1\nnet.bridge.bridge-nf-call-ip6tables = 1\nnet.ipv4.ip_forward = 1\n' > /etc/sysctl.d/k8s.conf"
-    # - curtin in-target -- bash -lc "set -euxo pipefail; modprobe overlay || true; modprobe br_netfilter || true; sysctl --system || true"
-
-    # # --- containerd 설정 (설치 중 start/restart 금지: enable만) ---
-    # - curtin in-target -- bash -lc "set -euxo pipefail; mkdir -p /etc/containerd; containerd config default > /etc/containerd/config.toml"
-    # - curtin in-target -- bash -lc "set -euxo pipefail; sed -i 's/SystemdCgroup = false/SystemdCgroup = true/g' /etc/containerd/config.toml || true"
-    # - curtin in-target -- bash -lc "set -euxo pipefail; grep -q 'SystemdCgroup = true' /etc/containerd/config.toml"
-    # - curtin in-target -- bash -lc "set -euxo pipefail; SYSTEMD_OFFLINE=1 systemctl enable containerd"
-
-    # # --- Kubernetes apt repo + 설치 (v1.35 실패 시 v1.34 폴백)
-    # # kubernetes-cni는 명시 설치하지 않음(일부 버전에서 candidate 없음 이슈)
-    # - curtin in-target -- bash -lc 'set -euo pipefail
-    #     install_k8s() {
-    #       local minor="$1"
-    #       install -m 0755 -d /etc/apt/keyrings
-    #       curl --retry 10 --retry-connrefused --retry-delay 2 --connect-timeout 10 --max-time 60 -fsSL \
-    #         "https://pkgs.k8s.io/core:/stable:/v${minor}/deb/Release.key" \
-    #         | gpg --batch --yes --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-    #       echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v${minor}/deb/ /" \
-    #         > /etc/apt/sources.list.d/kubernetes.list
-    #       apt-get -o Acquire::Retries=5 update
-    #       DEBIAN_FRONTEND=noninteractive apt-get install -y kubelet kubeadm kubectl
-    #       apt-mark hold kubelet kubeadm kubectl
-    #     }
-    #     install_k8s 1.35 || install_k8s 1.34'
-
-    # # kubelet은 enable만(설치 중 start 불필요/실패 리스크↓)
-    # - curtin in-target -- bash -lc "set -euxo pipefail; SYSTEMD_OFFLINE=1 systemctl enable kubelet || true"
-
-    # # --- (옵션) 가상화 스택 ---
-    # - curtin in-target -- bash -lc "set -euxo pipefail; DEBIAN_FRONTEND=noninteractive apt-get install -y qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils virtinst || true"
-    # - curtin in-target -- bash -lc "set -euxo pipefail; SYSTEMD_OFFLINE=1 systemctl enable libvirtd || true"
-    # - curtin in-target -- bash -lc "set -euxo pipefail; usermod -aG libvirt,kvm walter || true"
-
-    # # --- helm/k9s (snap) : 설치 흔들림 대비 retry + 검증 ---
-    # - curtin in-target -- bash -lc 'set -euo pipefail
-    #     install_snap() {
-    #       local name="$1"; shift
-    #       for i in 1 2 3 4 5; do
-    #         snap install "$name" "$@" && return 0 || true
-    #         sleep 3
-    #       done
-    #       return 1
-    #     }
-    #     install_snap helm --classic
-    #     install_snap k9s
-    #     snap list | grep -q "^helm "
-    #     snap list | grep -q "^k9s "'
-
-    # # --- 사용자 환경 (.bashrc) ---
-    # - curtin in-target -- bash -lc "set -euxo pipefail; echo 'alias k=kubectl' >> /home/walter/.bashrc"
-    # - curtin in-target -- bash -lc "set -euxo pipefail; echo 'source <(kubectl completion bash)' >> /home/walter/.bashrc"
-    # - curtin in-target -- bash -lc "set -euxo pipefail; echo 'complete -o default -F __start_kubectl k' >> /home/walter/.bashrc"
-    # - curtin in-target -- bash -lc "set -euxo pipefail; echo 'export VAGRANT_DEFAULT_PROVIDER=libvirt' >> /home/walter/.bashrc"
-    # - curtin in-target -- bash -lc "set -euxo pipefail; chown walter:walter /home/walter/.bashrc"
+  # Refresh to the latest snap built from the "main" subiquity branch
+  refresh-installer:
+    update: true
+    channel: latest/edge
