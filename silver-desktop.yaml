@@ -71,49 +71,49 @@ autoinstall:
     - curtin in-target -- bash -lc "set -euxo pipefail; grep -q 'SystemdCgroup = true' /etc/containerd/config.toml"
     - curtin in-target -- bash -lc "set -euxo pipefail; SYSTEMD_OFFLINE=1 systemctl enable containerd"
 
-    # --- Kubernetes apt repo + 설치 (v1.35 실패 시 v1.34 폴백)
-    # kubernetes-cni는 명시 설치하지 않음(일부 버전에서 candidate 없음 이슈)
-    - curtin in-target -- bash -lc 'set -euo pipefail
-        install_k8s() {
-          local minor="$1"
-          install -m 0755 -d /etc/apt/keyrings
-          curl --retry 10 --retry-connrefused --retry-delay 2 --connect-timeout 10 --max-time 60 -fsSL \
-            "https://pkgs.k8s.io/core:/stable:/v${minor}/deb/Release.key" \
-            | gpg --batch --yes --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-          echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v${minor}/deb/ /" \
-            > /etc/apt/sources.list.d/kubernetes.list
-          apt-get -o Acquire::Retries=5 update
-          DEBIAN_FRONTEND=noninteractive apt-get install -y kubelet kubeadm kubectl
-          apt-mark hold kubelet kubeadm kubectl
-        }
-        install_k8s 1.35 || install_k8s 1.34'
+    # # --- Kubernetes apt repo + 설치 (v1.35 실패 시 v1.34 폴백)
+    # # kubernetes-cni는 명시 설치하지 않음(일부 버전에서 candidate 없음 이슈)
+    # - curtin in-target -- bash -lc 'set -euo pipefail
+    #     install_k8s() {
+    #       local minor="$1"
+    #       install -m 0755 -d /etc/apt/keyrings
+    #       curl --retry 10 --retry-connrefused --retry-delay 2 --connect-timeout 10 --max-time 60 -fsSL \
+    #         "https://pkgs.k8s.io/core:/stable:/v${minor}/deb/Release.key" \
+    #         | gpg --batch --yes --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+    #       echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v${minor}/deb/ /" \
+    #         > /etc/apt/sources.list.d/kubernetes.list
+    #       apt-get -o Acquire::Retries=5 update
+    #       DEBIAN_FRONTEND=noninteractive apt-get install -y kubelet kubeadm kubectl
+    #       apt-mark hold kubelet kubeadm kubectl
+    #     }
+    #     install_k8s 1.35 || install_k8s 1.34'
 
-    # kubelet은 enable만(설치 중 start 불필요/실패 리스크↓)
-    - curtin in-target -- bash -lc "set -euxo pipefail; SYSTEMD_OFFLINE=1 systemctl enable kubelet || true"
+    # # kubelet은 enable만(설치 중 start 불필요/실패 리스크↓)
+    # - curtin in-target -- bash -lc "set -euxo pipefail; SYSTEMD_OFFLINE=1 systemctl enable kubelet || true"
 
-    # --- (옵션) 가상화 스택 ---
-    - curtin in-target -- bash -lc "set -euxo pipefail; DEBIAN_FRONTEND=noninteractive apt-get install -y qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils virtinst || true"
-    - curtin in-target -- bash -lc "set -euxo pipefail; SYSTEMD_OFFLINE=1 systemctl enable libvirtd || true"
-    - curtin in-target -- bash -lc "set -euxo pipefail; usermod -aG libvirt,kvm walter || true"
+    # # --- (옵션) 가상화 스택 ---
+    # - curtin in-target -- bash -lc "set -euxo pipefail; DEBIAN_FRONTEND=noninteractive apt-get install -y qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils virtinst || true"
+    # - curtin in-target -- bash -lc "set -euxo pipefail; SYSTEMD_OFFLINE=1 systemctl enable libvirtd || true"
+    # - curtin in-target -- bash -lc "set -euxo pipefail; usermod -aG libvirt,kvm walter || true"
 
-    # --- helm/k9s (snap) : 설치 흔들림 대비 retry + 검증 ---
-    - curtin in-target -- bash -lc 'set -euo pipefail
-        install_snap() {
-          local name="$1"; shift
-          for i in 1 2 3 4 5; do
-            snap install "$name" "$@" && return 0 || true
-            sleep 3
-          done
-          return 1
-        }
-        install_snap helm --classic
-        install_snap k9s
-        snap list | grep -q "^helm "
-        snap list | grep -q "^k9s "'
+    # # --- helm/k9s (snap) : 설치 흔들림 대비 retry + 검증 ---
+    # - curtin in-target -- bash -lc 'set -euo pipefail
+    #     install_snap() {
+    #       local name="$1"; shift
+    #       for i in 1 2 3 4 5; do
+    #         snap install "$name" "$@" && return 0 || true
+    #         sleep 3
+    #       done
+    #       return 1
+    #     }
+    #     install_snap helm --classic
+    #     install_snap k9s
+    #     snap list | grep -q "^helm "
+    #     snap list | grep -q "^k9s "'
 
-    # --- 사용자 환경 (.bashrc) ---
-    - curtin in-target -- bash -lc "set -euxo pipefail; echo 'alias k=kubectl' >> /home/walter/.bashrc"
-    - curtin in-target -- bash -lc "set -euxo pipefail; echo 'source <(kubectl completion bash)' >> /home/walter/.bashrc"
-    - curtin in-target -- bash -lc "set -euxo pipefail; echo 'complete -o default -F __start_kubectl k' >> /home/walter/.bashrc"
-    - curtin in-target -- bash -lc "set -euxo pipefail; echo 'export VAGRANT_DEFAULT_PROVIDER=libvirt' >> /home/walter/.bashrc"
-    - curtin in-target -- bash -lc "set -euxo pipefail; chown walter:walter /home/walter/.bashrc"
+    # # --- 사용자 환경 (.bashrc) ---
+    # - curtin in-target -- bash -lc "set -euxo pipefail; echo 'alias k=kubectl' >> /home/walter/.bashrc"
+    # - curtin in-target -- bash -lc "set -euxo pipefail; echo 'source <(kubectl completion bash)' >> /home/walter/.bashrc"
+    # - curtin in-target -- bash -lc "set -euxo pipefail; echo 'complete -o default -F __start_kubectl k' >> /home/walter/.bashrc"
+    # - curtin in-target -- bash -lc "set -euxo pipefail; echo 'export VAGRANT_DEFAULT_PROVIDER=libvirt' >> /home/walter/.bashrc"
+    # - curtin in-target -- bash -lc "set -euxo pipefail; chown walter:walter /home/walter/.bashrc"
