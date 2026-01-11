@@ -1,4 +1,5 @@
 autoinstall:
+  version: 1
   apt:
     mirror-selection:
       primary:
@@ -59,3 +60,5 @@ autoinstall:
   refresh-installer:
     update: true
     channel: latest/edge
+
+  shutdown: reboot
