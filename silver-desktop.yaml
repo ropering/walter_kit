@@ -5,24 +5,24 @@ autoinstall:
   keyboard:
     layout: kr
 
-  network:
-    version: 2
-    wifis:
-      wlp8s0:
-        dhcp4: false
-        addresses:
-          - 192.168.0.50/24
-        routes:
-          - to: default
-            via: 192.168.0.1
-        nameservers:
-          addresses: [8.8.8.8, 8.8.4.4]
-        access-points:
-          "TakeRest5G":
-            password: "takearest"
+  # network:
+  #   version: 2
+  #   wifis:
+  #     wlp8s0:
+  #       dhcp4: false
+  #       addresses:
+  #         - 192.168.0.50/24
+  #       routes:
+  #         - to: default
+  #           via: 192.168.0.1
+  #       nameservers:
+  #         addresses: [8.8.8.8, 8.8.4.4]
+  #       access-points:
+  #         "TakeRest5G":
+  #           password: "takearest"
 
   identity:
-    hostname: k8s-master
+    hostname: main-1
     username: walter
     password: "$6$m9rLgoAUUIzlB6vG$ZoPRCs0EbxtDTC6gBzRTxSMOf3p6MC6cXAw9V8A.csjFBii/yucC3rVE5P7tPgwVLHwHANgmr9EehbIcvZBvU0"
 
