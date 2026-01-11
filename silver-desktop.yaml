@@ -1,3 +1,4 @@
+#cloud-config
 autoinstall:
   version: 1
   apt:
@@ -14,10 +15,8 @@ autoinstall:
   storage:
     layout:
       name: direct
-      match:
-        ssd: true
-    swap:
-      size: 0
+    # 특정 디스크 매칭이 실패할 경우를 대비해 
+    # 일반적인 설정을 권장하거나 match 조건을 확인하세요.
 
   identity:
     hostname: main-1
@@ -28,22 +27,22 @@ autoinstall:
     install-server: true
     allow-pw: true
   
-  # install codecs, which currently means installing the
-  # ubuntu-restricted-addons package
+  # 추가 패키지 설치가 필요하다면 아래 형식을 사용하세요.
+  # 없으면 packages 섹션 자체를 삭제해야 합니다.
+  packages:
+    - vim
+    - curl
+
   codecs:
     install: true
   
-  # install drivers as suggested by `ubuntu-drivers`.
   drivers:
     install: true
   
+  # Desktop 버전 설치가 아닌 Server 버전 설치라면 
+  # oem, codecs 설정은 무시될 수 있습니다.
   oem:
     install: auto
-  
-  snaps:
-  
-  autoinstall:
-    packages:
   
   kernel-crash-dumps:
     enabled: true
@@ -53,12 +52,11 @@ autoinstall:
   keyboard:
     layout: kr
 
-  # Updates from both the security and updates pockets are installed.
   updates: all
 
-  # Refresh to the latest snap built from the "main" subiquity branch
+  # 24.04에서는 설치 프로그램 업데이트가 문제를 일으키는 경우가 많습니다.
+  # 에러가 지속되면 아래 refresh-installer 부분을 false로 바꾸어 보세요.
   refresh-installer:
-    update: true
-    channel: latest/edge
+    update: false
 
   shutdown: reboot
