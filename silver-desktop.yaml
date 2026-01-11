@@ -1,22 +1,22 @@
 #cloud-config
 autoinstall:
   version: 1
-  apt:
-    mirror-selection:
-      primary:
-        - uri: "https://ftp.kaist.ac.kr/ubuntu/"
-          arches: [amd64]
-        - uri: "https://mirror.kakao.com/ubuntu/"
-          arches: [amd64]
-        - uri: "http://archive.ubuntu.com/ubuntu"
-          arches: [amd64]
-    fallback: abort
 
+  network:
+      network:
+        version: 2
+        ethernets:
+          all-en: # 모든 이더넷 인터페이스에 대해 DHCP 적용
+            match:
+              name: en*
+            dhcp4: true
+
+  apt:
+    preserve_sources_list: false
+  
   storage:
     layout:
       name: direct
-    # 특정 디스크 매칭이 실패할 경우를 대비해 
-    # 일반적인 설정을 권장하거나 match 조건을 확인하세요.
 
   identity:
     hostname: main-1
